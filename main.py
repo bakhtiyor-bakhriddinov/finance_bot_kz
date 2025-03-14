@@ -21,7 +21,10 @@ def main() -> None:
         entry_points=[CommandHandler('start', start_command)],
         states={
             AUTH: [MessageHandler(filters.TEXT & ~filters.COMMAND, auth)],
-            USER_REG: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_reg)],
+            USER_REG: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, user_reg),
+                MessageHandler(filters.CONTACT, user_reg),
+            ],
             HOME: [MessageHandler(filters.TEXT & ~filters.COMMAND, home_selection)],
             MY_REQUESTS: [MessageHandler(filters.TEXT & ~filters.COMMAND, my_requests_handler)],
             DEPARTMENTS: [MessageHandler(filters.TEXT & ~filters.COMMAND, department_handler)],

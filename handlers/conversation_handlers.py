@@ -5,12 +5,14 @@ from telegram import (
     Update,
     ReplyKeyboardMarkup,
     InlineKeyboardMarkup,
-    InlineKeyboardButton
+    InlineKeyboardButton,
+    KeyboardButton
 )
 from telegram.ext import ContextTypes
 
 from keyboards import client_keyboards
 from utils.api_requests import api_routes
+from utils.utils import is_valid_phone_number
 
 # Define states
 (
@@ -53,13 +55,34 @@ async def user_reg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if context.user_data["client"]["fullname"] is None and "phone" not in context.user_data["client"]:
         context.user_data["client"]["fullname"] = user_input
         await update.message.reply_text(
-            text='Укажите свой номер'
+            text='Укажите свой номер в формате: 998933886989',
+            reply_markup=ReplyKeyboardMarkup(keyboard=[[
+                KeyboardButton(text="Номер телефона ☎️", request_contact=True)
+            ]], resize_keyboard=True)
         )
         context.user_data["client"]["phone"] = None
         return USER_REG
 
     elif context.user_data["client"]["phone"] is None:
-        context.user_data["client"]["phone"] = user_input
+        contact = update.message.contact
+        if user_input:
+            is_phone = is_valid_phone_number(user_input)
+            if is_phone:
+                context.user_data["client"]["phone"] = user_input
+            else:
+                await update.message.reply_text(
+                    text='Укажите свой номер в формате: 998933886989',
+                    reply_markup=ReplyKeyboardMarkup(keyboard=[[
+                        KeyboardButton(text="Номер телефона ☎️", request_contact=True)
+                    ]], resize_keyboard=True)
+                )
+                context.user_data["client"]["phone"] = None
+                return USER_REG
+
+        elif contact:
+            phone_number = contact.phone_number
+            context.user_data["client"]["phone"] = phone_number
+
 
     if context.user_data["client"]["fullname"] is not None and context.user_data["client"]["phone"] is not None:
         body = {
@@ -248,10 +271,10 @@ async def expense_type_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     context.user_data["new_request"]["expense_type_id"] = expense_type_id
     context.user_data["request_details"]["expense_type_name"] = expense_type_name
 
-    keyboard = (await client_keyboards.buyers_keyboard())
+    # keyboard = (await client_keyboards.buyers_keyboard())
     await update.message.reply_text(
-        text=keyboard['text'],
-        reply_markup=keyboard['markup']
+        text="Укажите Закупщика",
+        reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True)
     )
     return BUYER
 
@@ -267,15 +290,16 @@ async def buyer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         )
         return EXPENSE_TYPE
 
-    response = api_routes.get_buyers(name=buyer_name)
-    buyer_id = response[0]["id"]
-    context.user_data["new_request"]["buyer_id"] = buyer_id
+    # response = api_routes.get_buyers(name=buyer_name)
+    # buyer_id = response[0]["id"]
+    # context.user_data["new_request"]["buyer_id"] = buyer_id
+    context.user_data["new_request"]["buyer"] = buyer_name
     context.user_data["request_details"]["buyer_name"] = buyer_name
 
-    keyboard = (await client_keyboards.suppliers_keyboard())
+    # keyboard = (await client_keyboards.suppliers_keyboard())
     await update.message.reply_text(
-        text=keyboard['text'],
-        reply_markup=keyboard['markup']
+        text="Укажите поставщика",
+        reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True)
     )
     return SUPPLIER
 
@@ -283,16 +307,17 @@ async def buyer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 async def supplier_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     supplier_name = update.message.text
     if supplier_name == "Назад ⬅️":
-        keyboard = (await client_keyboards.buyers_keyboard())
+        # keyboard = (await client_keyboards.buyers_keyboard())
         await update.message.reply_text(
-            text=keyboard['text'],
-            reply_markup=keyboard['markup']
+            text="Укажите Закупщика",
+            reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True)
         )
         return BUYER
 
-    response = api_routes.get_suppliers(name=supplier_name)
-    supplier_id = response[0]["id"]
-    context.user_data["new_request"]["supplier_id"] = supplier_id
+    # response = api_routes.get_suppliers(name=supplier_name)
+    # supplier_id = response[0]["id"]
+    # context.user_data["new_request"]["supplier_id"] = supplier_id
+    context.user_data["new_request"]["supplier"] = supplier_name
     context.user_data["request_details"]["supplier_name"] = supplier_name
 
     await update.message.reply_text(
@@ -305,10 +330,10 @@ async def supplier_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 async def description_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     description = update.message.text
     if description == "Назад ⬅️":
-        keyboard = (await client_keyboards.suppliers_keyboard())
+        # keyboard = (await client_keyboards.suppliers_keyboard())
         await update.message.reply_text(
-            text=keyboard['text'],
-            reply_markup=keyboard['markup']
+            text="Укажите поставщика",
+            reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True)
         )
         return SUPPLIER
 
@@ -399,9 +424,6 @@ async def payment_detail_handler(update: Update, context: ContextTypes.DEFAULT_T
 
     document = update.message.document
     photo = update.message.photo
-    # print("document: ", document)
-    # print("photo: ", photo)
-    # print("payment_card: ", payment_card)
     if payment_card:
         context.user_data["new_request"]["payment_card"] = payment_card
         context.user_data["request_details"]["payment_card"] = payment_card
@@ -512,9 +534,9 @@ async def confirmation_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                 f"Отдел: {request['department']['name']}\n"
                 f"Заказчик: {request['client']['fullname']}\n"
                 f"Номер заказчика: {request['client']['phone']}\n"
-                f"Закупщик: {request['buyer']['name']}\n"
+                f"Закупщик: {request['buyer']}\n"
                 f"Тип затраты: {request['expense_type']['name']}\n"
-                f"Поставщик:  {request['supplier']['name']}\n\n"
+                f"Поставщик:  {request['supplier']}\n\n"
                 f"Стоимость: {request['sum']} сум\n"
                 f"Тип оплаты: {request['payment_type']['name']}\n"
                 f"Карта перевода: {request['payment_card']}\n"
