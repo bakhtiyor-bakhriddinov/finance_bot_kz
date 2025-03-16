@@ -54,7 +54,10 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
     # Use regex to find the request number
     match = re.search(r"Номер заявки:\s+(\d+)", query.message.text)
     request_number = match.group(1)
-    request = api_routes.get_requests(number=request_number)
+
+    response = api_routes.get_requests(number=request_number)
+    request = response.json()['items'][0]
+    request_id = str(request['id'])
 
     if callback_data == "refuse":
         await query.edit_message_reply_markup(
@@ -67,8 +70,6 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             )
         )
     elif callback_data in ["not_confirm", "discuss", "other"]:
-        request_id = str(request['id'])
-        print("request_id: ", request_id)
         deny_reason = ""
         if callback_data == "not_confirm":
             deny_reason = "Не подтверждаю"
@@ -83,7 +84,6 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             "comment": deny_reason
         }
         response = api_routes.update_request(body=body)
-        print("response: ", response.text)
         if response.status_code == 200:
             request = response.json()
             await query.answer(text="Заявка отменена 🚫", show_alert=True)
@@ -104,7 +104,6 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
 
         await query.answer()
     elif callback_data == "confirm":
-        request_id = str(request['id'])
         body = {
             "id": request_id,
             "approved": True

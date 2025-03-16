@@ -12,7 +12,7 @@ from telegram.ext import ContextTypes
 
 from keyboards import client_keyboards
 from utils.api_requests import api_routes
-from utils.utils import is_valid_phone_number
+from utils.utils import format_phone_number
 
 # Define states
 (
@@ -55,7 +55,7 @@ async def user_reg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if context.user_data["client"]["fullname"] is None and "phone" not in context.user_data["client"]:
         context.user_data["client"]["fullname"] = user_input
         await update.message.reply_text(
-            text='Укажите свой номер в формате: 998933886989 или нажмите кнопку "Поделиться контактом ☎️"',
+            text='Укажите свой номер в формате: +998933886989 или нажмите кнопку "Поделиться контактом ☎️"',
             reply_markup=ReplyKeyboardMarkup(keyboard=[[
                 KeyboardButton(text="Поделиться контактом ☎️", request_contact=True)
             ]], resize_keyboard=True)
@@ -65,23 +65,24 @@ async def user_reg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
     elif context.user_data["client"]["phone"] is None:
         contact = update.message.contact
+        phone = ''
         if user_input:
-            is_phone = is_valid_phone_number(user_input)
-            if is_phone:
-                context.user_data["client"]["phone"] = user_input
-            else:
-                await update.message.reply_text(
-                    text='Укажите свой номер в формате: 998933886989 или нажмите кнопку "Поделиться контактом ☎️"',
-                    reply_markup=ReplyKeyboardMarkup(keyboard=[[
-                        KeyboardButton(text="Поделиться контактом ☎️", request_contact=True)
-                    ]], resize_keyboard=True)
-                )
-                context.user_data["client"]["phone"] = None
-                return USER_REG
-
+            phone = user_input
         elif contact:
-            phone_number = contact.phone_number
-            context.user_data["client"]["phone"] = phone_number
+            phone = contact.phone_number
+
+        phone_number = format_phone_number(phone)
+        if phone_number is None:
+            await update.message.reply_text(
+                text='Укажите свой номер в формате: +998933886989 или нажмите кнопку "Поделиться контактом ☎️"',
+                reply_markup=ReplyKeyboardMarkup(keyboard=[[
+                    KeyboardButton(text="Поделиться контактом ☎️", request_contact=True)
+                ]], resize_keyboard=True)
+            )
+            context.user_data["client"]["phone"] = None
+            return USER_REG
+
+        context.user_data["client"]["phone"] = phone_number
 
 
     if context.user_data["client"]["fullname"] is not None and context.user_data["client"]["phone"] is not None:
