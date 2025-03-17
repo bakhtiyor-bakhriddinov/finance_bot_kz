@@ -1,3 +1,5 @@
+from typing import Union
+
 from telegram import Update
 from telegram.ext import ContextTypes
 from .conversation_handlers import AUTH, HOME
@@ -5,7 +7,7 @@ from utils.api_requests import api_routes
 from keyboards import client_keyboards
 
 
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Union[int, None]:
     tg_id = update.message.chat.id
     response = api_routes.get_client(tg_id)
     client = response.json()
@@ -15,15 +17,19 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     context.user_data["client"]["language"] = "ru"
     if client:
         client = client[0]
-        context.user_data["client"]["id"] = client["id"]
-        context.user_data["client"]["fullname"] = client["fullname"]
-        context.user_data["client"]["phone"] = client["phone"]
-        keyboard = (await client_keyboards.home_keyboard())
-        await update.message.reply_text(
-            text=keyboard['text'],
-            reply_markup=keyboard['markup']
-        )
-        return HOME
+        if client["is_active"]:
+            context.user_data["client"]["id"] = client["id"]
+            context.user_data["client"]["fullname"] = client["fullname"]
+            context.user_data["client"]["phone"] = client["phone"]
+            keyboard = (await client_keyboards.home_keyboard())
+            await update.message.reply_text(
+                text=keyboard['text'],
+                reply_markup=keyboard['markup']
+            )
+            return HOME
+        else:
+            await update.message.reply_text("Вы заблокированы, обратитесь Сис.Админу")
+            return None
     else:
         await update.message.reply_text(
             'Здравствуйте.\n'

@@ -452,9 +452,16 @@ async def payment_detail_handler(update: Update, context: ContextTypes.DEFAULT_T
             )
         ]
         response = api_routes.upload_files(files=files)
-        # print("uploaded file: ", response.text)
-        response = response.json()
-        context.user_data["new_request"]["file_paths"] = response["file_paths"]
+        if response.status_code == 200:
+            response = response.json()
+            context.user_data["new_request"]["file_paths"] = response["file_paths"]
+        else:
+            print("Error while uploading file: ", response.text)
+            await update.message.reply_text(
+                text="Повторите отправить файл заново!",
+                reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
+            )
+            return PAYMENT_DETAIL
 
     text = 'Укажите код заявки в SAP'
     await update.message.reply_text(

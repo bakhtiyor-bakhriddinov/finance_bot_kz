@@ -37,7 +37,7 @@ class ApiRoutes:
 
     def get_client(self, tg_id):
         response = requests.get(f"{self.base_url}/clients", headers=self.headers,
-                                params={'tg_id': tg_id, 'is_active': True})
+                                params={'tg_id': tg_id})
         return response
 
     def edit_user(self, tg_id, group_id: Optional[int] = None, branch_id: Optional[UUID] = None):
