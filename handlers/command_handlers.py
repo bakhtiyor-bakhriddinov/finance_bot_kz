@@ -8,9 +8,7 @@ from keyboards import client_keyboards
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     tg_id = update.message.chat.id
     response = api_routes.get_client(tg_id)
-    print("CLIENT RESPONSE: \n", response.text)
     client = response.json()
-    print("CLIENT: \n", client)
     client = client['items']
     context.user_data["client"] = {}
     context.user_data["client"]["tg_id"] = tg_id
