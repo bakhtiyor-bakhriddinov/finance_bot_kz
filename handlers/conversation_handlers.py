@@ -25,12 +25,14 @@ from utils.utils import format_phone_number
     BUYER,
     SUPPLIER,
     DESCRIPTION,
+    CURRENCY,
     SUM,
     PAYMENT_TYPE,
-    PAYMENT_DETAIL,
+    CONTRACT,
+    PAYMENT_CARD,
     SAP_CODE,
     CONFIRM
-) = range(14)
+) = range(16)
 
 
 
@@ -214,7 +216,8 @@ async def my_requests_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         f"🛒 Закупщик: {request['buyer']}\n"
         f"💰 Тип затраты: {request['expense_type']['name']}\n"
         f"🏢 Поставщик: {request['supplier']}\n\n"
-        f"💲 Стоимость: {int(request['sum'])} сум\n"
+        f"💲 Стоимость: {int(request['sum'])}\n"
+        f"💵 Валюта: {request['currency']}\n"
         f"💳 Тип оплаты: {request['payment_type']['name']}\n"
         f"💳 Карта перевода: {request['payment_card'] if request['payment_card'] is not None else ''}\n"
         f"📜 № Заявки в SAP: {request['sap_code']}\n\n"
@@ -341,24 +344,53 @@ async def description_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
     context.user_data["new_request"]["description"] = description
     context.user_data["request_details"]["description"] = description
 
+    keyboard = (await client_keyboards.currency_keyboard())
     await update.message.reply_text(
-        text='Укажите сумму, в сумм',
-        reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
+        text=keyboard['text'],
+        reply_markup=keyboard['markup']
     )
-    return SUM
+    return CURRENCY
 
 
-async def sum_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    sum = update.message.text
-    if sum == "Назад ⬅️":
+async def currency_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    currency = update.message.text
+    if currency == "Назад ⬅️":
         await update.message.reply_text(
             text='Введите комментарии',
             reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
         )
         return DESCRIPTION
 
-    sum_number = sum.isdigit()
-    if sum_number:
+    context.user_data["new_request"]["currency"] = currency
+    context.user_data["request_details"]["currency"] = currency
+
+    await update.message.reply_text(
+        text='Укажите сумму в числах',
+        reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
+    )
+    return SUM
+
+
+
+async def sum_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    sum = update.message.text
+    if sum == "Назад ⬅️":
+        await update.message.reply_text(
+            text='Выберите валюту',
+            reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
+        )
+        return CURRENCY
+
+    is_number = sum.isdigit()
+    if is_number:
+        sum_len = len(str(sum))
+        if sum_len < 3:
+            await update.message.reply_text(
+                text='Укажите сумму минимум с 3-мя цифрами.',
+                reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
+            )
+            return SUM
+
         context.user_data["new_request"]["sum"] = sum
         context.user_data["request_details"]["sum"] = sum
 
@@ -371,7 +403,8 @@ async def sum_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
     else:
         await update.message.reply_text(
-            text='Укажите сумму, в сумм. Используйте только числа'
+            text='Укажите сумму. Используйте только числа',
+            reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
         )
         return SUM
 
@@ -391,29 +424,33 @@ async def payment_type_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     context.user_data["request_details"]["payment_type_name"] = payment_type_name
 
     text = ''
-    if "Наличные" in payment_type_name:
-        context.user_data["new_request"]["cash"] = context.user_data["new_request"]["sum"]
-        text = 'Укажите код заявки в SAP'
+    reply_markup = None
+    if "Перевод" in payment_type_name:
+        text = 'Укажите номер карты, куда нужно сделать перевод средств.'
+        reply_markup = ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
         await update.message.reply_text(
             text=text,
-            reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
+            reply_markup=reply_markup
         )
-        return SAP_CODE
+        return PAYMENT_CARD
+
+    elif "Наличные" in payment_type_name:
+        context.user_data["new_request"]["cash"] = context.user_data["new_request"]["sum"]
+        text = 'Отправьте договор в формате: pdf , png , docx.'
+        reply_markup = ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"], ["Пропустить ➡️"]], resize_keyboard=True, one_time_keyboard=True)
 
     elif "Перечисление" in payment_type_name:
         text = 'Отправьте договор в формате: pdf , png , docx.'
-
-    elif "Перевод" in payment_type_name:
-        text = 'Укажите номер карты, куда нужно сделать перевод средств'
+        reply_markup = ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
 
     await update.message.reply_text(
         text=text,
-        reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
+        reply_markup=reply_markup
     )
-    return PAYMENT_DETAIL
+    return CONTRACT
 
 
-async def payment_detail_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def payment_card_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     payment_card = update.message.text
     if payment_card == "Назад ⬅️":
         keyboard = (await client_keyboards.payment_types_keyboard())
@@ -423,25 +460,52 @@ async def payment_detail_handler(update: Update, context: ContextTypes.DEFAULT_T
         )
         return PAYMENT_TYPE
 
+    context.user_data["new_request"]["payment_card"] = payment_card
+    context.user_data["request_details"]["payment_card"] = payment_card
+
+    await update.message.reply_text(
+        text='Укажите код заявки в SAP',
+        reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
+    )
+    return SAP_CODE
+
+
+async def contract_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    text = update.message.text
     document = update.message.document
     photo = update.message.photo
-    if payment_card:
-        context.user_data["new_request"]["payment_card"] = payment_card
-        context.user_data["request_details"]["payment_card"] = payment_card
+    if text:
+        if text == "Назад ⬅️":
+            keyboard = (await client_keyboards.payment_types_keyboard())
+            await update.message.reply_text(
+                text=keyboard['text'],
+                reply_markup=keyboard['markup']
+            )
+            return PAYMENT_TYPE
+        elif text == "Пропустить ➡️":
+            await update.message.reply_text(
+                text='Укажите код заявки в SAP',
+                reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
+            )
+            return SAP_CODE
+        else:
+            await update.message.reply_text("⚠️ 'Отправьте договор в формате: pdf , png , docx.'")
+            return CONTRACT
 
-    elif document or photo:
+    else:
         context.user_data["new_request"]["contract"] = True
         if document:  # ✅ If the user sends a document
             file_id = document.file_id
-            file_name = document.file_name
+            file_name = document.file_name if document.file_name else document.file_unique_id
             mime_type = document.mime_type
-        elif photo:  # ✅ If the user sends a photo
+        elif photo and len(photo) > 0:  # ✅ If the user sends a photo
             file_id = photo[-1].file_id  # Get the best quality image
             file_name = photo[-1].file_unique_id
-            mime_type = "image/png"
+            # mime_type = "image/png"
+            mime_type = "image/jpeg"
         else:
             await update.message.reply_text("⚠️ 'Отправьте договор в формате: pdf , png , docx.'")
-            return PAYMENT_DETAIL
+            return CONTRACT
 
         file = await context.bot.get_file(file_id)  # Get the file object
         binary_data = await file.download_as_bytearray()  # Download file as binary data
@@ -456,34 +520,44 @@ async def payment_detail_handler(update: Update, context: ContextTypes.DEFAULT_T
             response = response.json()
             context.user_data["new_request"]["file_paths"] = response["file_paths"]
         else:
+            print(f"Uploading file: {file_name}, Size: {len(binary_data)}, MIME: {mime_type}")
             print("Error while uploading file: ", response.text)
             await update.message.reply_text(
                 text="Повторите отправить файл заново!",
                 reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
             )
-            return PAYMENT_DETAIL
+            return CONTRACT
 
-    text = 'Укажите код заявки в SAP'
-    await update.message.reply_text(
-        text=text,
-        reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
-    )
-    return SAP_CODE
+        await update.message.reply_text(
+            text='Укажите код заявки в SAP',
+            reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
+        )
+        return SAP_CODE
 
 
 
 async def sap_code_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     sap_code = update.message.text
     if sap_code == "Назад ⬅️":
-        if "payment_card" in context.user_data["new_request"] or "contract" in context.user_data["new_request"]:
-            text = ''
-            if "payment_card" in context.user_data["new_request"]:
-                text='Укажите номер карты, куда нужно сделать перевод средств'
-            elif "contract" in context.user_data["new_request"]:
-                text='Отправьте договор в формате: pdf , png , docx.'
+        if "payment_card" in context.user_data["new_request"]:
+            text = 'Укажите номер карты, куда нужно сделать перевод средств.'
+            reply_markup = ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True,
+                                               one_time_keyboard=True)
+            await update.message.reply_text(
+                text=text,
+                reply_markup=reply_markup
+            )
+            return PAYMENT_CARD
 
-            await update.message.reply_text(text)
-            return PAYMENT_DETAIL
+        elif "contract" in context.user_data["new_request"]:
+            text = 'Отправьте договор в формате: pdf , png , docx.'
+            reply_markup = ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True,
+                                               one_time_keyboard=True)
+            await update.message.reply_text(
+                text=text,
+                reply_markup=reply_markup
+            )
+            return CONTRACT
         else:
             keyboard = (await client_keyboards.payment_types_keyboard())
             await update.message.reply_text(
@@ -508,7 +582,8 @@ async def sap_code_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         f"🛒 Закупщик: {request['buyer_name']}\n"
         f"💰 Тип затраты: {request['expense_type_name']}\n"
         f"🏢 Поставщик: {request['supplier_name']}\n\n"
-        f"💲 Стоимость: {int(request['sum'])} сум\n"
+        f"💲 Стоимость: {int(request['sum'])}\n"
+        f"💵 Валюта: {request['currency']}\n"
         f"💳 Тип оплаты: {request['payment_type_name']}\n"
         f"💳 Карта перевода: {request.get('payment_card', '')}\n"
         f"📜 № Заявки в SAP: {request['sap_code']}\n\n"
@@ -553,7 +628,8 @@ async def confirmation_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                 f"🛒 Закупщик: {request['buyer']}\n"
                 f"💰 Тип затраты: {request['expense_type']['name']}\n"
                 f"🏢 Поставщик: {request['supplier']}\n\n"
-                f"💲 Стоимость: {int(request['sum'])} сум\n"
+                f"💲 Стоимость: {int(request['sum'])}\n"
+                f"💵 Валюта: {request['currency']}\n"
                 f"💳 Тип оплаты: {request['payment_type']['name']}\n"
                 f"💳 Карта перевода: {request['payment_card'] if request['payment_card'] is not None else ''}\n"
                 f"📜 № Заявки в SAP: {request['sap_code']}\n\n"

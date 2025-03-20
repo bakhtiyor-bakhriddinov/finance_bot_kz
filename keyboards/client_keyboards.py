@@ -84,3 +84,13 @@ async def payment_types_keyboard():
     return data_dict
 
 
+async def currency_keyboard():
+    currencies = ["Сум", "Доллар", "Евро", "Тенге", "Фунт", "Рубль", "Другое"]
+    reply_keyboard = [["Назад ⬅️"]]
+    for i in range(0, len(currencies), 3):
+        reply_keyboard.append(currencies[i: i+3])
+
+    text = "Выберите валюту"
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
+    data_dict = {'text': text, 'markup': reply_markup}
+    return data_dict

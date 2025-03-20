@@ -32,16 +32,19 @@ def main() -> None:
             BUYER: [MessageHandler(filters.TEXT & ~filters.COMMAND, buyer_handler)],
             SUPPLIER: [MessageHandler(filters.TEXT & ~filters.COMMAND, supplier_handler)],
             DESCRIPTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, description_handler)],
+            CURRENCY: [MessageHandler(filters.TEXT & ~filters.COMMAND, currency_handler)],
             SUM: [MessageHandler(filters.TEXT & ~filters.COMMAND, sum_handler)],
             PAYMENT_TYPE: [MessageHandler(filters.TEXT & ~filters.COMMAND, payment_type_handler)],
-            PAYMENT_DETAIL: [
+            PAYMENT_CARD: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, payment_card_handler)
+            ],
+            CONTRACT: [
                 # MessageHandler(filters.Document.FileExtension("pdf") | filters.Document.FileExtension("png") | filters.Document.FileExtension("docx"), payment_detail_handler),
                 # MessageHandler(filters.Document.PDF | filters.Document.IMAGE | filters.Document.DOCX, payment_detail_handler),
-                MessageHandler(filters.Document.ALL, payment_detail_handler),
-                MessageHandler(filters.PHOTO, payment_detail_handler),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, payment_detail_handler),
+                MessageHandler(filters.Document.ALL, contract_handler),
+                MessageHandler(filters.PHOTO, contract_handler),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, contract_handler),
             ],
-            # PAYMENT_DETAIL: [MessageHandler(filters.Document.ALL & ~filters.TEXT & ~filters.COMMAND, payment_detail_handler)],
             SAP_CODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, sap_code_handler)],
             CONFIRM: [MessageHandler(filters.TEXT & ~filters.COMMAND, confirmation_handler)]
         },
