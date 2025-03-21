@@ -217,7 +217,7 @@ async def my_requests_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         f"💰 Тип затраты: {request['expense_type']['name']}\n"
         f"🏢 Поставщик: {request['supplier']}\n\n"
         f"💲 Стоимость: {int(request['sum'])}\n"
-        f"💵 Валюта: {request['currency']}\n"
+        f"💵 Валюта: {request.get('currency', '')}\n"
         f"💳 Тип оплаты: {request['payment_type']['name']}\n"
         f"💳 Карта перевода: {request['payment_card'] if request['payment_card'] is not None else ''}\n"
         f"📜 № Заявки в SAP: {request['sap_code']}\n\n"
@@ -510,11 +510,9 @@ async def contract_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         file = await context.bot.get_file(file_id)  # Get the file object
         binary_data = await file.download_as_bytearray()  # Download file as binary data
         # Prepare file for upload
-        files = [
-            (
-                "files", (file_name, binary_data, mime_type)
-            )
-        ]
+        files = {
+            "file": (file_name, binary_data, mime_type)
+        }
         response = api_routes.upload_files(files=files)
         if response.status_code == 200:
             response = response.json()
