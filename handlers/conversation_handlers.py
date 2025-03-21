@@ -515,6 +515,8 @@ async def contract_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         }
         response = api_routes.upload_files(files=files)
         if response.status_code == 200:
+            print(f"Uploading file: {file_name}, Size: {len(binary_data)}, MIME: {mime_type}")
+            print("Error while uploading file: ", response.text)
             response = response.json()
             context.user_data["new_request"]["file_paths"] = response["file_paths"]
         else:
