@@ -5,6 +5,7 @@ from telegram import Update, InlineQueryResultArticle, InputTextMessageContent, 
     InlineKeyboardButton
 from telegram.ext import CallbackContext, ContextTypes
 from utils.api_requests import api_routes
+from utils.utils import error_sender
 
 
 async def inline_handler(update: Update, context: CallbackContext):
@@ -101,6 +102,8 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
                 )
             except Exception as e:
                 print(e)
+        else:
+            error_sender(error_message=f"FINANCE BOT: \n{response.text}")
 
         await query.answer()
     elif callback_data == "confirm":
@@ -127,4 +130,4 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             except Exception as e:
                 print(e)
         else:
-            print("Error: ", response.text)
+            error_sender(error_message=f"FINANCE BOT: \n{response.text}")

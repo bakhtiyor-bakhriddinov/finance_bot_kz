@@ -18,4 +18,6 @@ ALGORITHM = os.environ.get("ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES")
 BOT_USER = os.environ.get("BOT_USER")
 BOT_PASSWORD = os.environ.get("BOT_PASSWORD")
+ERROR_GROUP = os.environ.get("ERROR_GROUP")
+ERROR_BOT = os.environ.get("ERROR_BOT")
 

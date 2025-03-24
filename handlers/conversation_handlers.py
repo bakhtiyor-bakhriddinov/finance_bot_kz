@@ -1,6 +1,7 @@
 # import logging
 from datetime import datetime
 
+import requests
 from telegram import (
     Update,
     ReplyKeyboardMarkup,
@@ -12,7 +13,7 @@ from telegram.ext import ContextTypes
 
 from keyboards import client_keyboards
 from utils.api_requests import api_routes
-from utils.utils import format_phone_number
+from utils.utils import format_phone_number, error_sender
 
 # Define states
 (
@@ -106,6 +107,7 @@ async def user_reg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             )
             return HOME
         else:
+            error_sender(error_message=f"FINANCE BOT: \n{response.text}")
             await update.message.reply_text(text="Что-то пошло не так, отправьте заново комманду /start")
 
 
@@ -361,6 +363,14 @@ async def currency_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         )
         return DESCRIPTION
 
+    if currency not in ["Сум", "Доллар", "Евро", "Тенге", "Фунт", "Рубль", "Другое"]:
+        keyboard = (await client_keyboards.currency_keyboard())
+        await update.message.reply_text(
+            text=f"{keyboard['text']} только из этих вариантов 👇",
+            reply_markup=keyboard['markup']
+        )
+        return CURRENCY
+
     context.user_data["new_request"]["currency"] = currency
     context.user_data["request_details"]["currency"] = currency
 
@@ -522,6 +532,7 @@ async def contract_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         else:
             print(f"Uploading file: {file_name}, Size: {len(binary_data)}, MIME: {mime_type}")
             print("Error while uploading file: ", response.text)
+            error_sender(error_message=f"FINANCE BOT: \n{response.text}")
             await update.message.reply_text(
                 text="Повторите отправить файл заново!",
                 reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
@@ -651,6 +662,7 @@ async def confirmation_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             except Exception as e:
                 print(e)
         else:
+            error_sender(error_message=f"FINANCE BOT: \n{response.text}")
             await update.message.reply_text(text="Что-то пошло не так, отправьте заявку заново !")
 
         return HOME
