@@ -95,6 +95,7 @@ class ApiRoutes:
 
     def upload_files(self, files,file_name):
         # self.headers["Content-Type"] = "multipart/form-data"
+        self.headers["Content-Type"] = None
         self.headers['filename'] = quote(file_name)
         response = requests.post(f"{self.base_url}/files/upload/bot/2", headers=self.headers, files=files)
         return response
