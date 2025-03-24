@@ -510,7 +510,7 @@ async def contract_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             mime_type = document.mime_type
         elif photo and len(photo) > 0:  # ✅ If the user sends a photo
             file_id = photo[-1].file_id  # Get the best quality image
-            file_name = photo[-1].file_unique_id
+            file_name = photo[-1].file_unique_id + '.jpg'
             # mime_type = "image/png"
             mime_type = "image/jpeg"
         else:
