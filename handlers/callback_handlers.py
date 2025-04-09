@@ -1,9 +1,13 @@
 # import logging
 import re
+from datetime import datetime
 
 from telegram import Update, InlineQueryResultArticle, InputTextMessageContent, InlineKeyboardMarkup, \
-    InlineKeyboardButton
+    InlineKeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import CallbackContext, ContextTypes
+
+from handlers.conversation_handlers import HOME, MY_REQUESTS
+from keyboards import client_keyboards
 from utils.api_requests import api_routes
 from utils.utils import error_sender
 
@@ -131,3 +135,67 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
                 print(e)
         else:
             error_sender(error_message=f"FINANCE BOT: \n{response.text}")
+
+
+async def my_requests_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    tg_id = update.message.chat.id
+    response = api_routes.get_client(tg_id)
+    client = response.json()
+    client = client.get('items', None)
+    if client:
+        client = client[0]["id"]
+    else:
+        client = None
+        keyboard = (await client_keyboards.home_keyboard())
+        await update.message.reply_text(
+            text=keyboard['text'],
+            reply_markup=keyboard['markup']
+        )
+        return HOME
+
+    part_name = update.message.text
+    if part_name == "Назад ⬅️":
+        keyboard = (await client_keyboards.home_keyboard())
+        await update.message.reply_text(
+            text=keyboard['text'],
+            reply_markup=keyboard['markup']
+        )
+        return HOME
+
+    status = 5
+    text = ''
+    if part_name == "Архив":
+        status = "4,5"
+        text = "Ваши заявки в архиве"
+    elif part_name == "Актив":
+        status = "0,1,2,3"
+        text = "Ваши активные заявки"
+
+    await update.message.reply_text(text)
+    response = api_routes.get_requests(client_id=client, status=status)
+    requests = response.json()["items"]
+    request_messages = [
+        f"📌 Заявка #{request['number']}s\n\n"
+        f"📅 Дата заявки: {datetime.strptime(request['created_at'], '%Y-%m-%dT%H:%M:%S.%f%z').strftime('%d.%m.%Y')}\n"
+        f"📍 Отдел: {request['department']['name']}\n"
+        f"👤 Заказчик: {request['client']['fullname']}\n"
+        f"📞 Номер заказчика: {request['client']['phone']}\n"
+        f"🛒 Закупщик: {request['buyer']}\n"
+        f"💰 Тип затраты: {request['expense_type']['name']}\n"
+        f"🏢 Поставщик: {request['supplier']}\n\n"
+        f"💲 Стоимость: {int(request['sum'])} сум\n"
+        f"💵 Валюта: {request.get('currency', '')}\n"
+        f"📈 Курс валюты: {request.get('exchange_rate', '')}\n"
+        f"💳 Тип оплаты: {request['payment_type']['name']}\n"
+        f"💳 Карта перевода: {request['payment_card'] if request['payment_card'] is not None else ''}\n"
+        f"📜 № Заявки в SAP: {request['sap_code']}\n\n"
+        f"📝 Комментарии: {request['description']}"
+        for request in requests
+    ]
+    for message in request_messages:
+        await update.message.reply_text(
+            text=message,
+            reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True)
+        )
+
+    return MY_REQUESTS

@@ -1,9 +1,9 @@
-from telegram.ext import Application, CommandHandler, InlineQueryHandler, ConversationHandler, MessageHandler, \
+from telegram.ext import Application, CommandHandler, ConversationHandler, MessageHandler, \
     filters, PicklePersistence, CallbackQueryHandler
 from configs.variables import BOT_TOKEN
 from handlers.command_handlers import help_command, custom_command, start_command
 from handlers.conversation_handlers import *
-from handlers.callback_handlers import handle_callback_query
+from handlers.callback_handlers import handle_callback_query, my_requests_handler
 
 
 # from handlers.inline_handlers import inline_handler
