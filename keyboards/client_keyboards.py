@@ -1,6 +1,7 @@
 from telegram import ReplyKeyboardMarkup, KeyboardButton
-
 from utils.api_requests import api_routes
+from datetime import datetime, date
+import calendar
 
 
 async def home_keyboard():
@@ -27,20 +28,32 @@ async def departments_keyboard():
         reply_keyboard.append(departments[i: i+3])
 
     text = "Укажите отдел, откуда подаёте заявку"
-    reply_markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
     data_dict = {'text': text, 'markup': reply_markup}
     return data_dict
 
 
-async def expense_types_keyboard():
-    objs = api_routes.get_expense_types()
-    objs = [obj["name"] for obj in objs]
+async def expense_types_keyboard(department_id):
+    # Get today's date
+    today = date.today()
+
+    # First day of current month
+    first_day = today.replace(day=1)
+
+    # Last day of current month
+    last_day = today.replace(day=calendar.monthrange(today.year, today.month)[1])
+
+    objs = api_routes.get_expense_types(department_id=department_id, start_date=first_day, finish_date=last_day)
+    # objs = api_routes.get_expense_types()
+    # print(objs)
+    # objs = [obj["name"] for obj in objs]
+    objs = [obj["expense_type"]["name"] for obj in objs]
     reply_keyboard = [["Назад ⬅️"]]
     for i in range(0, len(objs), 3):
         reply_keyboard.append(objs[i: i+3])
 
     text = "Укажите тип затраты"
-    reply_markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
     data_dict = {'text': text, 'markup': reply_markup}
     return data_dict
 
@@ -79,7 +92,7 @@ async def payment_types_keyboard():
         reply_keyboard.append(objs[i: i+3])
 
     text = "Выберите тип оплаты"
-    reply_markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
     data_dict = {'text': text, 'markup': reply_markup}
     return data_dict
 
@@ -91,6 +104,6 @@ async def currency_keyboard():
         reply_keyboard.append(currencies[i: i+3])
 
     text = "Выберите валюту"
-    reply_markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
     data_dict = {'text': text, 'markup': reply_markup}
     return data_dict

@@ -6,6 +6,7 @@ from telegram import Update, InlineQueryResultArticle, InputTextMessageContent, 
     InlineKeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import CallbackContext, ContextTypes
 
+from configs.variables import APPROVE_GROUP, CEO
 from handlers.conversation_handlers import HOME, MY_REQUESTS
 from keyboards import client_keyboards
 from utils.api_requests import api_routes
@@ -55,6 +56,13 @@ async def inline_handler(update: Update, context: CallbackContext):
 async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     callback_data = query.data
+    chat_type = str(query.message.chat.type)
+    tg_id = query.from_user.id
+
+    if chat_type in ["group", "supergroup"]:
+        if tg_id != CEO:
+            await query.answer(text="Вы не являетесь CEO !", show_alert=True)
+            return None
 
     # Use regex to find the request number after "📌 Заявка #"
     match = re.search(r"📌 Заявка #(\d+)s", query.message.text)
@@ -63,6 +71,10 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
     response = api_routes.get_requests(number=request_number)
     request = response.json()['items'][0]
     request_id = str(request['id'])
+
+    response = api_routes.get_client(tg_id)
+    client = response.json()
+    client = client['items'][0]
 
     if callback_data == "refuse":
         await query.edit_message_reply_markup(
@@ -74,6 +86,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
                 ]
             )
         )
+
     elif callback_data in ["not_confirm", "discuss", "other"]:
         deny_reason = ""
         if callback_data == "not_confirm":
@@ -86,7 +99,8 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         body = {
             "id": request_id,
             "status": 4,
-            "comment": deny_reason
+            "comment": deny_reason,
+            "client_id": client["id"]
         }
         response = api_routes.update_request(body=body)
         if response.status_code == 200:
@@ -110,12 +124,15 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             error_sender(error_message=f"FINANCE BOT: \n{response.text}")
 
         await query.answer()
+
     elif callback_data == "confirm":
         body = {
             "id": request_id,
-            "approved": True
+            "approved": True,
+            "client_id": client["id"]
         }
         response = api_routes.update_request(body=body)
+
         if response.status_code == 200:
             request = response.json()
             await query.answer(text="Заявка одобрена ✅", show_alert=True)

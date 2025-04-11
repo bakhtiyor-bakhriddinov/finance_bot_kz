@@ -20,4 +20,5 @@ BOT_USER = os.environ.get("BOT_USER")
 BOT_PASSWORD = os.environ.get("BOT_PASSWORD")
 ERROR_GROUP = os.environ.get("ERROR_GROUP")
 ERROR_BOT = os.environ.get("ERROR_BOT")
-
+APPROVE_GROUP = os.environ.get("APPROVE_GROUP")
+CEO = int(os.environ.get("CEO"))

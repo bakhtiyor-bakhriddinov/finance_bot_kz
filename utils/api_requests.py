@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Optional
 from uuid import UUID
 import requests
@@ -58,18 +59,42 @@ class ApiRoutes:
         response = requests.post(f"{self.base_url}/clients", headers=self.headers, json=body)
         return response
 
-    def get_departments(self, name: Optional[str] = None):
+    def get_departments(self, name: Optional[str] = None, id: Optional[UUID] = None):
         if name is not None:
             response = requests.get(f"{self.base_url}/departments", headers=self.headers, params={'name': name})
+        elif id is not None:
+            response = requests.get(f"{self.base_url}/departments/{id}", headers=self.headers)
         else:
             response = requests.get(f"{self.base_url}/departments", headers=self.headers)
         return response.json()
 
-    def get_expense_types(self, name: Optional[str] = None):
+    def get_budget_balance(self, department_id, expense_type_id):
+        response = requests.get(f"{self.base_url}/budget-balance", headers=self.headers,
+                                params={'department_id': department_id, 'expense_type_id': expense_type_id}
+                                )
+        return response.json()
+
+    def get_expense_types(
+            self,
+            name: Optional[str] = None,
+            department_id: Optional[UUID] = None,
+            start_date: Optional[date] = None,
+            finish_date: Optional[date] = None
+    ):
         if name is not None:
             response = requests.get(f"{self.base_url}/expense-types", headers=self.headers, params={'name': name})
         else:
-            response = requests.get(f"{self.base_url}/expense-types", headers=self.headers)
+            # response = requests.get(f"{self.base_url}/expense-types", headers=self.headers)
+            response = requests.get(
+                f"{self.base_url}/budgets",
+                headers=self.headers,
+                params={
+                    'department_id': department_id,
+                    'start_date': start_date,
+                    'finish_date': finish_date
+                }
+            )
+
         return response.json()
 
     def get_buyers(self, name: Optional[str] = None):
@@ -103,6 +128,11 @@ class ApiRoutes:
     def create_request(self, body):
         self.headers["Content-Type"] = "application/json"
         response = requests.post(f"{self.base_url}/requests", headers=self.headers, json=body)
+        return response
+
+    def create_transaction(self, body):
+        self.headers["Content-Type"] = "application/json"
+        response = requests.post(f"{self.base_url}/transactions", headers=self.headers, json=body)
         return response
 
     def get_requests(self, client_id: Optional[str]=None, status: Optional[str]=None, number: Optional[int]=None):
