@@ -672,6 +672,9 @@ async def confirmation_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                 f"📜 № Заявки в SAP: {request['sap_code']}\n\n"
                 f"📝 Комментарии: {request['description']}"
             )
+            current_year = str(datetime.now().year)
+            current_month = str(datetime.now().month) if len(str(datetime.now().month)) > 1 else "0"+str(datetime.now().month)
+            current_date = str(datetime.now().date()) if len(str(datetime.now().date())) > 1 else "0"+str(datetime.now().date())
             if context.user_data["request_details"]["send_ceo"] == True:
                 try:
                     await update.message.reply_text(
@@ -689,7 +692,7 @@ async def confirmation_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                                 await context.bot.send_document(
                                     chat_id=chat_id,
                                     caption=request_text,
-                                    document=f"{BASE_URL}/{file_path}",
+                                    document=f"{BASE_URL}/{current_year}/{current_month}/{current_date}/{file_path}",
                                     reply_markup=InlineKeyboardMarkup(
                                         inline_keyboard=[
                                             [
@@ -729,7 +732,7 @@ async def confirmation_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                                 await context.bot.send_document(
                                     chat_id=chat_id,
                                     caption=request_text,
-                                    document=f"{BASE_URL}/{file_path}",
+                                    document=f"{BASE_URL}/{current_year}/{current_month}/{current_date}/{file_path}",
                                     reply_markup=InlineKeyboardMarkup(
                                         inline_keyboard=[
                                             [
