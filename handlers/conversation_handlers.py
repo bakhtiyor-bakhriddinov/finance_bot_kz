@@ -247,7 +247,7 @@ async def expense_type_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 
     # keyboard = (await client_keyboards.buyers_keyboard())
     await update.message.reply_text(
-        text="Укажите Закупщика",
+        text="Укажите Заказчика",
         reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True)
     )
     return BUYER
@@ -283,7 +283,7 @@ async def supplier_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if supplier_name == "Назад ⬅️":
         # keyboard = (await client_keyboards.buyers_keyboard())
         await update.message.reply_text(
-            text="Укажите Закупщика",
+            text="Укажите Заказчика",
             reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True)
         )
         return BUYER
@@ -632,9 +632,9 @@ async def sap_code_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     request_text = (
         f"📅 Дата заявки: {datetime.now().date().strftime('%d.%m.%Y')}\n"
         f"📍 Отдел: {request['department_name']}\n"
-        f"👤 Заказчик: {context.user_data['client']['fullname']}\n"
-        f"📞 Номер заказчика: {context.user_data['client']['phone']}\n"
-        f"🛒 Закупщик: {request['buyer_name']}\n"
+        f"👤 Заявитель: {context.user_data['client']['fullname']}\n"
+        f"📞 Номер заявителя: {context.user_data['client']['phone']}\n"
+        f"🛒 Заказчик: {request['buyer_name']}\n"
         f"💰 Тип затраты: {request['expense_type_name']}\n"
         f"🏢 Поставщик: {request['supplier_name']}\n\n"
         f"💲 Стоимость: {request_sum} сум\n"
@@ -697,7 +697,7 @@ async def confirmation_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             request = response.json()
             request_sum = format(int(request['sum']), ',').replace(',', ' ')
             if request.get('exchange_rate', None) is not None:
-                requested_currency = format((request['sum'] / request['exchange_rate']), ',').replace(',', ' ')
+                requested_currency = format((float(request['sum']) / float(request['exchange_rate'])), ',').replace(',', ' ')
             else:
                 requested_currency = request_sum
 
@@ -705,9 +705,9 @@ async def confirmation_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                 f"📌 Заявка #{request['number']}s\n\n"
                 f"📅 Дата заявки: {datetime.strptime(request['created_at'], '%Y-%m-%dT%H:%M:%S.%f%z').strftime('%d.%m.%Y')}\n"
                 f"📍 Отдел: {request['department']['name']}\n"
-                f"👤 Заказчик: {request['client']['fullname']}\n"
-                f"📞 Номер заказчика: {request['client']['phone']}\n"
-                f"🛒 Закупщик: {request['buyer']}\n"
+                f"👤 Заявитель: {request['client']['fullname']}\n"
+                f"📞 Номер заявителя: {request['client']['phone']}\n"
+                f"🛒 Заказчик: {request['buyer']}\n"
                 f"💰 Тип затраты: {request['expense_type']['name']}\n"
                 f"🏢 Поставщик: {request['supplier']}\n\n"
                 f"💲 Стоимость: {request_sum} сум\n"
