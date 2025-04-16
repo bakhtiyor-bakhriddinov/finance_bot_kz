@@ -676,19 +676,17 @@ async def confirmation_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             # current_month = str(datetime.now().month) if len(str(datetime.now().month)) > 1 else "0"+str(datetime.now().month)
             # current_date = str(datetime.now().date()) if len(str(datetime.now().date())) > 1 else "0"+str(datetime.now().date())
             if context.user_data["request_details"]["send_ceo"] == True:
-                try:
-                    await update.message.reply_text(
-                        text="Не осталось бюджетных средств, и заявка будет отправлена Гендиректору.\n"
-                             "В случае одобрения будут выделены средства сверх бюджета !"
-                    )
-                    chat_id = APPROVE_GROUP
-                    if request["contract"]:
-                        files = request["contract"]["file"]
-                        for file in files:
-                            file_paths = file["file_paths"]
-                            for file_path in file_paths:
-                                # with open(f"{BASE_URL}/{file_path}", "rb") as f:
-                                    # Prepare data and files
+                await update.message.reply_text(
+                    text="Не осталось бюджетных средств, и заявка будет отправлена Гендиректору.\n"
+                         "В случае одобрения будут выделены средства сверх бюджета !"
+                )
+                chat_id = APPROVE_GROUP
+                if request["contract"]:
+                    files = request["contract"]["file"]
+                    for file in files:
+                        file_paths = file["file_paths"]
+                        for file_path in file_paths:
+                            try:
                                 await context.bot.send_document(
                                     chat_id=chat_id,
                                     caption=request_text,
@@ -702,46 +700,76 @@ async def confirmation_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                                         ]
                                     )
                                 )
-                    else:
-                        await context.bot.send_message(
-                            chat_id=chat_id,  # WHERE CEO CAN APPROVE
-                            text=request_text,
-                            reply_markup=InlineKeyboardMarkup(
-                                inline_keyboard=[
-                                    [
-                                        InlineKeyboardButton(text="Подтвердить", callback_data="confirm"),
-                                        InlineKeyboardButton(text="Отказать", callback_data="refuse"),
-                                    ]
+                            except Exception as e:
+                                error_sender(
+                                    error_message=f"Couldn't send request notification to CEO group with contract file: \n{e}"
+                                )
+                                await context.bot.send_message(
+                                    chat_id=chat_id,  # WHERE CEO CAN APPROVE
+                                    text=request_text,
+                                    reply_markup=InlineKeyboardMarkup(
+                                        inline_keyboard=[
+                                            [
+                                                InlineKeyboardButton(text="Подтвердить", callback_data="confirm"),
+                                                InlineKeyboardButton(text="Отказать", callback_data="refuse"),
+                                            ]
+                                        ]
+                                    )
+                                )
+                else:
+                    await context.bot.send_message(
+                        chat_id=chat_id,  # WHERE CEO CAN APPROVE
+                        text=request_text,
+                        reply_markup=InlineKeyboardMarkup(
+                            inline_keyboard=[
+                                [
+                                    InlineKeyboardButton(text="Подтвердить", callback_data="confirm"),
+                                    InlineKeyboardButton(text="Отказать", callback_data="refuse"),
                                 ]
-                            )
+                            ]
                         )
-                except Exception as e:
-                    error_sender(error_message=f"ERROR sending notification with contract file to CEO group: {e}")
+                    )
             else:
-                try:
-                    text = f"Ваша заявка #{request['number']}s принята на обработку, как финансовый отдел примет её, вы получите срок оплаты"
-                    await update.message.reply_text(text)
-                    chat_id = request["department"]["head"]["tg_id"]
+                text = f"Ваша заявка #{request['number']}s принята на обработку, как финансовый отдел примет её, вы получите срок оплаты"
+                await update.message.reply_text(text)
+                department_head = request["department"]["head"]
+                if department_head:
+                    chat_id = department_head["tg_id"]
                     if request["contract"]:
                         files = request["contract"]["file"]
                         for file in files:
                             file_paths = file["file_paths"]
                             for file_path in file_paths:
-                                # with open(f"{BASE_URL}/{file_path}", "rb") as f:
-                                    # Prepare data and files
-                                await context.bot.send_document(
-                                    chat_id=chat_id,
-                                    caption=request_text,
-                                    document=f"{BASE_URL}/{file_path}",
-                                    reply_markup=InlineKeyboardMarkup(
-                                        inline_keyboard=[
-                                            [
-                                                InlineKeyboardButton(text="Подтвердить", callback_data="confirm"),
-                                                InlineKeyboardButton(text="Отказать", callback_data="refuse"),
+                                try:
+                                    await context.bot.send_document(
+                                        chat_id=chat_id,
+                                        caption=request_text,
+                                        document=f"{BASE_URL}/{file_path}",
+                                        reply_markup=InlineKeyboardMarkup(
+                                            inline_keyboard=[
+                                                [
+                                                    InlineKeyboardButton(text="Подтвердить", callback_data="confirm"),
+                                                    InlineKeyboardButton(text="Отказать", callback_data="refuse"),
+                                                ]
                                             ]
-                                        ]
+                                        )
                                     )
-                                )
+                                except Exception as e:
+                                    error_sender(
+                                        error_message=f"Couldn't send request notification to head of department with contract file: \n{e}"
+                                    )
+                                    await context.bot.send_message(
+                                        chat_id=chat_id,
+                                        text=request_text,
+                                        reply_markup=InlineKeyboardMarkup(
+                                            inline_keyboard=[
+                                                [
+                                                    InlineKeyboardButton(text="Подтвердить", callback_data="confirm"),
+                                                    InlineKeyboardButton(text="Отказать", callback_data="refuse"),
+                                                ]
+                                            ]
+                                        )
+                                    )
                     else:
                         await context.bot.send_message(
                             chat_id=chat_id,
@@ -755,9 +783,6 @@ async def confirmation_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                                 ]
                             )
                         )
-                except Exception as e:
-                    error_sender(error_message=f"ERROR sending notification with contract file to head of department: {e}")
-
 
         else:
             error_sender(error_message=f"FINANCE BOT: \n{response.text}")
