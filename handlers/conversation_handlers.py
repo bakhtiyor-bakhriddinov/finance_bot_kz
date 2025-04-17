@@ -12,7 +12,7 @@ from telegram import (
 )
 from telegram.ext import ContextTypes
 
-from configs.variables import APPROVE_GROUP, BASE_URL
+from configs.variables import APPROVE_GROUP, PROJECT_PATH
 from keyboards import client_keyboards
 from utils.api_requests import api_routes
 from utils.utils import format_phone_number, error_sender
@@ -748,7 +748,7 @@ async def confirmation_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                             try:
                                 await context.bot.send_document(
                                     chat_id=chat_id,
-                                    document=f"{BASE_URL}/{file_path}",
+                                    document=f"{PROJECT_PATH}/{file_path}",
                                     reply_to_message_id=sent_message.message_id
                                 )
                             except Exception as e:
@@ -786,7 +786,7 @@ async def confirmation_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                                 try:
                                     await context.bot.send_document(
                                         chat_id=chat_id,
-                                        document=f"{BASE_URL}/{file_path}",
+                                        document=f"{PROJECT_PATH}/{file_path}",
                                         reply_to_message_id=sent_message.message_id
                                     )
                                 except Exception as e:

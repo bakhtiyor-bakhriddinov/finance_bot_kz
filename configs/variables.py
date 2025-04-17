@@ -11,7 +11,7 @@ load_dotenv()
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 BASE_URL = os.environ.get("BASE_URL")
-# PROJECT_PATH = os.environ.get("PROJECT_PATH")
+PROJECT_PATH = os.environ.get("PROJECT_PATH")
 FRONT_URL = os.environ.get("FRONT_URL")
 ACCESS_TOKEN = os.environ.get("ACCESS_TOKEN")
 JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
