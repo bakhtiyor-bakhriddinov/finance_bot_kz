@@ -763,20 +763,31 @@ async def confirmation_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                 text = f"Ваша заявка #{request['number']}s принята на обработку, как финансовый отдел примет её, вы получите срок оплаты"
                 await update.message.reply_text(text)
                 department_head = request["department"]["head"]
+                print("department_head: ", department_head)
                 if department_head:
                     chat_id = department_head["tg_id"]
-                    sent_message = await context.bot.send_message(
-                        chat_id=chat_id,
-                        text=request_text,
-                        reply_markup=InlineKeyboardMarkup(
-                            inline_keyboard=[
-                                [
-                                    InlineKeyboardButton(text="Подтвердить", callback_data="confirm"),
-                                    InlineKeyboardButton(text="Отказать", callback_data="refuse"),
+                    print("chat_id: ", chat_id)
+                    try:
+                        sent_message = await context.bot.send_message(
+                            chat_id=chat_id,
+                            text=request_text,
+                            reply_markup=InlineKeyboardMarkup(
+                                inline_keyboard=[
+                                    [
+                                        InlineKeyboardButton(text="Подтвердить", callback_data="confirm"),
+                                        InlineKeyboardButton(text="Отказать", callback_data="refuse"),
+                                    ]
                                 ]
-                            ]
+                            )
                         )
-                    )
+                    except Exception as e:
+                        error_message = (
+                            f"FINANCE BOT !!!\n"
+                            f"Couldn't send request № {request['number']} to head of department:"
+                        )
+                        error_sender(
+                            error_message=f"{error_message}\n\n{e}"
+                        )
 
                     if request["contract"]:
                         files = request["contract"]["file"]
