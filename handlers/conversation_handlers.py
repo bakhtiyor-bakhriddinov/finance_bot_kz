@@ -25,6 +25,9 @@ from utils.utils import format_phone_number, error_sender, is_valid_date
     MY_REQUESTS,
     DEPARTMENTS,
     EXPENSE_TYPE,
+    COUNTRY,
+    CITY,
+    TRIP_DAYS,
     BUYER,
     SUPPLIER,
     DESCRIPTION,
@@ -37,7 +40,7 @@ from utils.utils import format_phone_number, error_sender, is_valid_date
     SAP_CODE,
     PAYMENT_TIME,
     CONFIRM
-) = range(18)
+) = range(21)
 
 
 
@@ -251,7 +254,94 @@ async def expense_type_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         parse_mode='HTML'
     )
 
+    if expense_type_name == "Командировочные расходы":
+        keyboard = (await client_keyboards.countries_keyboard())
+        await update.message.reply_text(
+            text=keyboard['text'],
+            reply_markup=keyboard['markup']
+        )
+        return COUNTRY
+
     # keyboard = (await client_keyboards.buyers_keyboard())
+    await update.message.reply_text(
+        text="Укажите Заказчика",
+        reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True)
+    )
+    return BUYER
+
+
+
+async def country_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    country_name = update.message.text
+    if country_name == "Назад ⬅️":
+        keyboard = (await client_keyboards.expense_types_keyboard(department_id=UUID(context.user_data["new_request"]["department_id"])))
+        await update.message.reply_text(
+            text=keyboard['text'],
+            reply_markup=keyboard['markup']
+        )
+        return EXPENSE_TYPE
+
+    response = api_routes.get_countries(name=country_name)
+    country_obj = response[0]
+    country_id = country_obj["id"]
+    context.user_data["request_details"]["country_id"] = country_id
+    context.user_data["request_details"]["country"] = country_name
+
+    keyboard = (await client_keyboards.cities_keyboard(country_id=country_id))
+    await update.message.reply_text(
+        text=keyboard['text'],
+        reply_markup=keyboard['markup']
+    )
+    return CITY
+
+
+async def city_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    city_name = update.message.text
+    if city_name == "Назад ⬅️":
+        keyboard = (await client_keyboards.countries_keyboard())
+        await update.message.reply_text(
+            text=keyboard['text'],
+            reply_markup=keyboard['markup']
+        )
+        return COUNTRY
+
+    response = api_routes.get_cities(name=city_name)
+    city_obj = response[0]
+    city_id = city_obj["id"]
+    city_desc = city_obj["description"]
+    context.user_data["new_request"]["city_id"] = city_id
+    context.user_data["request_details"]["city"] = city_name
+
+    await update.message.reply_text(
+        text=f"Информация по выбранному направлению: \n{city_desc}"
+    )
+
+    await update.message.reply_text(
+        text="Введите количество дней в числах !",
+        reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True)
+    )
+    return TRIP_DAYS
+
+
+async def trip_days_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    amount_days = update.message.text
+    if amount_days == "Назад ⬅️":
+        keyboard = (await client_keyboards.cities_keyboard(country_id=context.user_data["request_details"]["country_id"]))
+        await update.message.reply_text(
+            text=keyboard['text'],
+            reply_markup=keyboard['markup']
+        )
+        return CITY
+
+    if not amount_days.isdigit():
+        await update.message.reply_text(
+            text="Введите только числа !"
+        )
+        return TRIP_DAYS
+
+    context.user_data["new_request"]["trip_days"] = int(amount_days)
+    context.user_data["request_details"]["trip_days"] = int(amount_days)
+
     await update.message.reply_text(
         text="Укажите Заказчика",
         reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True)
@@ -785,7 +875,11 @@ async def sap_code_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         f"💸 Фирма-плательщик: {request.get('payer_company_name', '')}\n\n"
         f"📝 Комментарии: {request['description']}"
     )
-
+    city_name = context.user_data.get("request_details").get("city")
+    trip_days = context.user_data.get("request_details").get("trip_days")
+    if city_name and trip_days:
+        request_text += (f"\n✈️ Коммандировка по направлению: {city_name}"
+                         f"\n⏳ Количество дней: {trip_days}")
     budget_balance = context.user_data["request_details"]["budget_balance"]
     context.user_data["request_details"]["send_ceo"] = False
 
@@ -864,6 +958,11 @@ async def confirmation_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                 f"💸 Фирма-плательщик: {request['payer_company']['name'] if request['payer_company'] is not None else ''}\n\n"
                 f"📝 Комментарии: {request['description']}"
             )
+            city_name = context.user_data.get("request_details").get("city")
+            trip_days = context.user_data.get("request_details").get("trip_days")
+            if city_name and trip_days:
+                request_text += (f"\n✈️ Коммандировка по направлению: {city_name}"
+                                 f"\n⏳ Количество дней: {trip_days}")
             # current_year = str(datetime.now().year)
             # current_month = str(datetime.now().month) if len(str(datetime.now().month)) > 1 else "0"+str(datetime.now().month)
             # current_date = str(datetime.now().date()) if len(str(datetime.now().date())) > 1 else "0"+str(datetime.now().date())

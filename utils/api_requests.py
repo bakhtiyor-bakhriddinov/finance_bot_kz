@@ -121,6 +121,22 @@ class ApiRoutes:
             response = requests.get(f"{self.base_url}/payment-types", headers=self.headers)
         return response.json()
 
+    def get_countries(self, name: Optional[str] = None):
+        if name is not None:
+            response = requests.get(f"{self.base_url}/countries", headers=self.headers, params={'name': name})
+        else:
+            response = requests.get(f"{self.base_url}/countries", headers=self.headers)
+        return response.json()
+
+
+    def get_cities(self, country_id: Optional[UUID] = None, name: Optional[str] = None):
+        if name is not None:
+            response = requests.get(f"{self.base_url}/cities", headers=self.headers, params={'name': name})
+        else:
+            response = requests.get(f"{self.base_url}/cities", headers=self.headers, params={'country_id': country_id})
+        return response.json()
+
+
     def get_payer_companies(self, name: Optional[str] = None):
         if name is not None:
             response = requests.get(f"{self.base_url}/payer-companies", headers=self.headers, params={'name': name})

@@ -65,12 +65,12 @@ async def expense_types_keyboard(department_id):
     today = date.today()
 
     # First day of current month
-    first_day = today.replace(day=1)
-    # first_day = datetime(year=2025, month=5, day=1).date()
+    # first_day = today.replace(day=1)
+    first_day = datetime(year=2025, month=7, day=1).date()
 
     # Last day of current month
-    last_day = today.replace(day=calendar.monthrange(today.year, today.month)[1])
-    # last_day = datetime(year=2025, month=5, day=31).date()
+    # last_day = today.replace(day=calendar.monthrange(today.year, today.month)[1])
+    last_day = datetime(year=2025, month=7, day=31).date()
 
     objs = api_routes.get_expense_types(department_id=department_id, start_date=first_day, finish_date=last_day)
     # objs = api_routes.get_expense_types()
@@ -153,3 +153,31 @@ async def payer_companies_keyboard():
     reply_markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
     data_dict = {'text': text, 'markup': reply_markup}
     return data_dict
+
+
+async def countries_keyboard():
+    objs = api_routes.get_countries()
+    objs = [obj["name"] for obj in objs]
+    reply_keyboard = [["Назад ⬅️"]]
+    for i in range(0, len(objs), 3):
+        reply_keyboard.append(objs[i: i+3])
+
+    text = "Выберите страну"
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+    data_dict = {'text': text, 'markup': reply_markup}
+    return data_dict
+
+
+async def cities_keyboard(country_id: UUID):
+    objs = api_routes.get_cities(country_id=country_id)
+    objs = [obj["name"] for obj in objs]
+    reply_keyboard = [["Назад ⬅️"]]
+    for i in range(0, len(objs), 3):
+        reply_keyboard.append(objs[i: i+3])
+
+    text = "Выберите направление"
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+    data_dict = {'text': text, 'markup': reply_markup}
+    return data_dict
+
+
