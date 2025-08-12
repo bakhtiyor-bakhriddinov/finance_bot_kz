@@ -247,7 +247,7 @@ async def expense_type_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         department_id=context.user_data["new_request"]["department_id"],
         expense_type_id=context.user_data["new_request"]["expense_type_id"]
     )
-    context.user_data["request_details"]["budget_balance"] = budget_balance['value'] if budget_balance else None
+    context.user_data["request_details"]["budget_balance"] = budget_balance['value'] if budget_balance else 0
 
     await update.message.reply_text(
         text=f"Ваш текущий бюджет по выбранному типу затраты: \n<b>{format(budget_balance['value'], ',').replace(',', ' ') if budget_balance else 0} сум</b>",
@@ -447,12 +447,17 @@ async def description_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
             except Exception as e:
                 error_sender(error_message=f"FINANCE BOT: \n{e}")
 
-            return HOME
-            # keyboard = (await client_keyboards.home_keyboard())
-            # await update.message.reply_text(
-            #     text=keyboard['text'],
-            #     reply_markup=keyboard['markup']
-            # )
+        elif response.status_code == 400:
+            await update.message.reply_text(
+                text="Заявка не может быть одобрена, недостаточно средств в бюджете ! ❌"
+            )
+
+        keyboard = (await client_keyboards.home_keyboard())
+        await update.message.reply_text(
+            text=keyboard['text'],
+            reply_markup=keyboard['markup']
+        )
+        return HOME
 
 
 
@@ -541,6 +546,7 @@ async def sum_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
     is_number = sum.isdigit()
     if is_number:
+        # over_budget = context.user_data["request_details"]["over_budget"]
         if context.user_data["new_request"]["currency"] != "Сум":
             sum = float(sum) * context.user_data["new_request"]["exchange_rate"]
 

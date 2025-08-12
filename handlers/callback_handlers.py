@@ -216,6 +216,8 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
                 )
             except Exception as e:
                 error_sender(error_message=f"FINANCE BOT: \n{e}")
+        elif response.status_code == 400:
+            await query.answer(text="Заявка не может быть одобрена, недостаточно средств в бюджете ! ❌", show_alert=True)
         else:
             error_sender(error_message=f"FINANCE BOT: \n{response.text}")
 
