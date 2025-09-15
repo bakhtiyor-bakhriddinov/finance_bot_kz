@@ -595,6 +595,7 @@ async def payment_time_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         start_date=formatted_date,
         finish_date=formatted_date
     )
+    print("budget_balance: ", budget_balance)
     context.user_data["request_details"]["budget_balance"] = budget_balance['value'] if budget_balance else 0
 
     await update.message.reply_text(
