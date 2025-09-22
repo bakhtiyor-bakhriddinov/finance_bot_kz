@@ -209,6 +209,22 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
                     caption=request_text,
                     reply_markup=None
                 )
+
+            try:
+                balance_response = api_routes.get_budget_balance(
+                    department_id=request['department']['id'],
+                    expense_type_id=request['expense_type']['id'],
+                    start_date=request['payment_time'].date(),
+                    finish_date=request['payment_time'].date()
+                )
+                balance_sum = balance_response["value"] if balance_response else 0
+                balance_sum = format(balance_sum, ',').replace(',', ' ')
+                await query.message.reply_text(
+                    text=f'На счёту "{request["expense_type"]["name"]}" вашего бюджета осталось: {balance_sum} сум'
+                )
+            except Exception as e:
+                error_sender(error_message=f"FINANCE BOT: \n{e}")
+
             try:
                 await context.bot.send_message(
                     chat_id=request["client"]["tg_id"],
