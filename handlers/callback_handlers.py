@@ -199,18 +199,21 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             await query.answer(text="Заявка одобрена ✅", show_alert=True)
             request_text = (f"{message_text}\n\n"
                             f"Подтверждено ✅")
-            if query.message.text:
-                await query.edit_message_text(
-                    text=request_text,
-                    reply_markup=None
-                )
-            elif query.message.caption:
-                await query.edit_message_caption(
-                    caption=request_text,
-                    reply_markup=None
-                )
+            # if query.message.text:
+            #     await query.edit_message_text(
+            #         text=request_text,
+            #         reply_markup=None
+            #     )
+            # elif query.message.caption:
+            #     await query.edit_message_caption(
+            #         caption=request_text,
+            #         reply_markup=None
+            #     )
 
             try:
+                print(request['payment_time'], type(request['payment_time']))
+                # date_obj = datetime.strptime(request['payment_time'], "%Y-%m-%d")
+                # formatted_date = date_obj.strftime("%Y-%m-%d")
                 balance_response = api_routes.get_budget_balance(
                     department_id=request['department']['id'],
                     expense_type_id=request['expense_type']['id'],
