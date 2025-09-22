@@ -199,16 +199,16 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             await query.answer(text="Заявка одобрена ✅", show_alert=True)
             request_text = (f"{message_text}\n\n"
                             f"Подтверждено ✅")
-            # if query.message.text:
-            #     await query.edit_message_text(
-            #         text=request_text,
-            #         reply_markup=None
-            #     )
-            # elif query.message.caption:
-            #     await query.edit_message_caption(
-            #         caption=request_text,
-            #         reply_markup=None
-            #     )
+            if query.message.text:
+                await query.edit_message_text(
+                    text=request_text,
+                    reply_markup=None
+                )
+            elif query.message.caption:
+                await query.edit_message_caption(
+                    caption=request_text,
+                    reply_markup=None
+                )
 
             try:
                 # 2025-09-27T00:00:00Z <class 'str'>
