@@ -42,7 +42,7 @@ from utils.utils import format_phone_number, error_sender, is_valid_date
     CONTRACT_NUMBER,
     RECEIPT,
     CONFIRM
-) = range(24)
+) = range(23)
 
 
 
