@@ -181,3 +181,11 @@ async def cities_keyboard(country_id: UUID):
     return data_dict
 
 
+async def request_with_receipts_keyboard():
+    responses = ["Да", "Нет"]
+    reply_keyboard = [["Назад ⬅️"], responses]
+
+    text = "Ваша заявка имеет счёт-фактуру ?\nВыберите ответ:"
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+    data_dict = {'text': text, 'markup': reply_markup}
+    return data_dict

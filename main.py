@@ -54,6 +54,13 @@ def main() -> None:
                 MessageHandler(filters.TEXT & ~filters.COMMAND, contract_handler),
             ],
             SAP_CODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, sap_code_handler)],
+            WITH_RECEIPT_OR_NOT: [MessageHandler(filters.TEXT & ~filters.COMMAND, has_request_receipt_handler)],
+            CONTRACT_NUMBER: [MessageHandler(filters.TEXT & ~filters.COMMAND, contract_number_handler)],
+            RECEIPT: [
+                MessageHandler(filters.Document.ALL, receipt_handler),
+                MessageHandler(filters.PHOTO, receipt_handler),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receipt_handler),
+            ],
             CONFIRM: [MessageHandler(filters.TEXT & ~filters.COMMAND, confirmation_handler)]
         },
         fallbacks=[CommandHandler('start', start_command)],

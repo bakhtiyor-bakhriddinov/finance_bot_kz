@@ -39,8 +39,11 @@ from utils.utils import format_phone_number, error_sender, is_valid_date
     PAYMENT_CARD,
     SAP_CODE,
     PAYMENT_TIME,
+    WITH_RECEIPT_OR_NOT,
+    CONTRACT_NUMBER,
+    RECEIPT,
     CONFIRM
-) = range(21)
+) = range(24)
 
 
 
@@ -242,6 +245,7 @@ async def expense_type_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     context.user_data["new_request"]["expense_type_id"] = expense_type_id
     context.user_data["request_details"]["expense_type_name"] = expense_type_name
     context.user_data["request_details"]["expense_type_purchasable"] = expense_type["purchasable"]
+    context.user_data["request_details"]["expense_type_checkable"] = expense_type["checkable"]
 
 
     if expense_type_name == "Командировочные расходы":
@@ -449,9 +453,6 @@ async def description_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         )
         return HOME
 
-
-
-
     keyboard = (await client_keyboards.currency_keyboard())
     await update.message.reply_text(
         text=keyboard['text'],
@@ -576,11 +577,9 @@ async def payment_time_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         return PAYMENT_TIME
 
     date_obj = datetime.strptime(user_message, "%d.%m.%Y")
-    print("date_obj: ", date_obj, type(date_obj))
 
     # Format it as "YYYY-MM-DD"
     formatted_date = date_obj.strftime("%Y-%m-%d")
-    print("formatted_date: ", formatted_date, type(formatted_date))
 
     if date_obj.date() < date.today():
         await update.message.reply_text(
@@ -595,7 +594,6 @@ async def payment_time_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         start_date=formatted_date,
         finish_date=formatted_date
     )
-    print("budget_balance: ", budget_balance)
     context.user_data["request_details"]["budget_balance"] = budget_balance['value'] if budget_balance else 0
 
     await update.message.reply_text(
@@ -866,6 +864,260 @@ async def sap_code_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     context.user_data["new_request"]["client_id"] = context.user_data['client']["id"]
     context.user_data["request_details"]["sap_code"] = sap_code
 
+    keyboard = (await client_keyboards.request_with_receipts_keyboard())
+    await update.message.reply_text(
+        text=keyboard['text'],
+        reply_markup=keyboard['markup']
+    )
+    return WITH_RECEIPT_OR_NOT
+
+
+async def has_request_receipt_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    response = update.message.text
+
+    if response == "Назад ⬅️":
+        await update.message.reply_text(
+            text='Укажите код заявки в SAP',
+            reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
+        )
+        return SAP_CODE
+
+    elif response == "Нет":
+        request = context.user_data["request_details"]
+        request_sum = format(int(request['sum']), ',').replace(',', ' ')
+        if request.get('exchange_rate', None) is not None:
+            requested_currency = format((request['sum'] / request['exchange_rate']), ',').replace(',', ' ')
+        else:
+            requested_currency = request_sum
+
+        request_text = (
+            f"📅 Дата заявки: {datetime.now().date().strftime('%d.%m.%Y')}\n"
+            f"📍 Отдел: {request['department_name']}\n"
+            f"👤 Заявитель: {context.user_data['client']['fullname']}\n"
+            f"📞 Номер заявителя: {context.user_data['client']['phone']}\n"
+            f"🛒 Заказчик: {request['buyer_name']}\n"
+            f"💰 Тип затраты: {request['expense_type_name']}\n"
+            f"🏢 Поставщик: {request['supplier_name']}\n\n"
+            f"💎 Стоимость: <b>{request_sum} сум</b>\n"
+            f"💎 Запрошенная сумма в валюте: <b>{requested_currency}</b>\n"
+            f"💵 Валюта: {request['currency']}\n"
+            f"📈 Курс валюты: {request['exchange_rate']}\n"
+            f"💳 Тип оплаты: {request['payment_type_name']}\n"
+            f"💳 Карта перевода: {request.get('payment_card', '')}\n"
+            f"📜 № Заявки в SAP: {request['sap_code']}\n"
+            f"🕓 Дата оплаты: {request['payment_time'].strftime('%d.%m.%Y')}\n"
+            f"💸 Фирма-плательщик: {request.get('payer_company_name', '')}\n\n"
+            f"📝 Комментарии: {request['description']}"
+        )
+        city_name = context.user_data.get("request_details").get("city")
+        trip_days = context.user_data.get("request_details").get("trip_days")
+        if city_name and trip_days:
+            request_text += (f"\n✈️ Коммандировка по направлению: {city_name}"
+                             f"\n⏳ Количество дней: {trip_days}")
+        budget_balance = context.user_data["request_details"]["budget_balance"]
+        context.user_data["request_details"]["send_ceo"] = False
+
+        if float(context.user_data["request_details"]["sum"]) > budget_balance and context.user_data["request_details"][
+            "over_budget"] == False:
+            await update.message.reply_text(
+                text="К сожалению, на балансе бюджета недостаточно средств для покрытия запрошенной суммы."
+            )
+            keyboard = (await client_keyboards.home_keyboard())
+            await update.message.reply_text(
+                text=keyboard['text'],
+                reply_markup=keyboard['markup']
+            )
+            return HOME
+
+        else:
+            if float(context.user_data["request_details"]["sum"]) > budget_balance and \
+                    context.user_data["request_details"]["over_budget"] == True:
+                context.user_data["request_details"]["send_ceo"] = True
+
+            await update.message.reply_text(
+                text='Проверьте свою заявку ещё раз, если всё правильно, подтвердите её.'
+            )
+            await update.message.reply_text(
+                text=request_text,
+                reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"], ["Подтвердить"]], resize_keyboard=True),
+                parse_mode='HTML'
+            )
+            return CONFIRM
+
+    text = 'Укажите номер договора'
+    reply_markup = ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True,
+                                       one_time_keyboard=True)
+    await update.message.reply_text(
+        text=text,
+        reply_markup=reply_markup
+    )
+    return CONTRACT_NUMBER
+
+
+async def contract_number_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    response = update.message.text
+
+    if response == "Назад ⬅️":
+        keyboard = (await client_keyboards.request_with_receipts_keyboard())
+        await update.message.reply_text(
+            text=keyboard['text'],
+            reply_markup=keyboard['markup']
+        )
+        return WITH_RECEIPT_OR_NOT
+
+    context.user_data["request_details"]["contract_number"] = response
+    context.user_data["new_request"]["contract_number"] = response
+
+    text = ('Отправьте счёт-фактуру в формате: pdf , png , docx.\n'
+            'Либо нажмите "Пропустить ➡️", если оплата является авансом !')
+    reply_markup = ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"], ["Пропустить ➡️"]], resize_keyboard=True,
+                                       one_time_keyboard=True)
+    await update.message.reply_text(
+        text=text,
+        reply_markup=reply_markup
+    )
+    return RECEIPT
+
+
+
+async def receipt_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    message = update.message
+    media_group_id = message.media_group_id
+    files = []
+    messages = [message]
+
+    if message.text:
+        text = update.message.text
+        if text == "Назад ⬅️":
+            text = 'Укажите номер договора'
+            reply_markup = ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True,
+                                               one_time_keyboard=True)
+            await update.message.reply_text(
+                text=text,
+                reply_markup=reply_markup
+            )
+            return CONTRACT_NUMBER
+
+        elif text == "Пропустить ➡️":
+            request = context.user_data["request_details"]
+            request_sum = format(int(request['sum']), ',').replace(',', ' ')
+            if request.get('exchange_rate', None) is not None:
+                requested_currency = format((request['sum'] / request['exchange_rate']), ',').replace(',', ' ')
+            else:
+                requested_currency = request_sum
+
+            request_text = (
+                f"📅 Дата заявки: {datetime.now().date().strftime('%d.%m.%Y')}\n"
+                f"📍 Отдел: {request['department_name']}\n"
+                f"👤 Заявитель: {context.user_data['client']['fullname']}\n"
+                f"📞 Номер заявителя: {context.user_data['client']['phone']}\n"
+                f"🛒 Заказчик: {request['buyer_name']}\n"
+                f"💰 Тип затраты: {request['expense_type_name']}\n"
+                f"🏢 Поставщик: {request['supplier_name']}\n\n"
+                f"💎 Стоимость: <b>{request_sum} сум</b>\n"
+                f"💎 Запрошенная сумма в валюте: <b>{requested_currency}</b>\n"
+                f"💵 Валюта: {request['currency']}\n"
+                f"📈 Курс валюты: {request['exchange_rate']}\n"
+                f"💳 Тип оплаты: {request['payment_type_name']}\n"
+                f"💳 Карта перевода: {request.get('payment_card', '')}\n"
+                f"📜 № Заявки в SAP: {request['sap_code']}\n"
+                f"🕓 Дата оплаты: {request['payment_time'].strftime('%d.%m.%Y')}\n"
+                f"💸 Фирма-плательщик: {request.get('payer_company_name', '')}\n\n"
+                f"📝 Комментарии: {request['description']}"
+            )
+            city_name = context.user_data.get("request_details").get("city")
+            trip_days = context.user_data.get("request_details").get("trip_days")
+            if city_name and trip_days:
+                request_text += (f"\n✈️ Коммандировка по направлению: {city_name}"
+                                 f"\n⏳ Количество дней: {trip_days}")
+            budget_balance = context.user_data["request_details"]["budget_balance"]
+            context.user_data["request_details"]["send_ceo"] = False
+
+            if float(context.user_data["request_details"]["sum"]) > budget_balance and \
+                    context.user_data["request_details"][
+                        "over_budget"] == False:
+                await update.message.reply_text(
+                    text="К сожалению, на балансе бюджета недостаточно средств для покрытия запрошенной суммы."
+                )
+                keyboard = (await client_keyboards.home_keyboard())
+                await update.message.reply_text(
+                    text=keyboard['text'],
+                    reply_markup=keyboard['markup']
+                )
+                return HOME
+
+            else:
+                if float(context.user_data["request_details"]["sum"]) > budget_balance and \
+                        context.user_data["request_details"]["over_budget"] == True:
+                    context.user_data["request_details"]["send_ceo"] = True
+
+                await update.message.reply_text(
+                    text='Проверьте свою заявку ещё раз, если всё правильно, подтвердите её.'
+                )
+                await update.message.reply_text(
+                    text=request_text,
+                    reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"], ["Подтвердить"]], resize_keyboard=True),
+                    parse_mode='HTML'
+                )
+                return CONFIRM
+
+        else:
+            await update.message.reply_text("⚠️ 'Отправьте счёт-фактуру в формате: pdf , png , docx.'")
+            context.user_data.pop("media_group", None)
+            return RECEIPT
+
+    # Prepare user_data store for accumulating media group
+    if media_group_id:
+        if "media_group" not in context.user_data:
+            context.user_data["media_group"] = {}
+
+        if media_group_id not in context.user_data["media_group"]:
+            context.user_data["media_group"][media_group_id] = []
+
+        context.user_data["media_group"][media_group_id].append(message)
+
+        messages = context.user_data["media_group"][media_group_id]
+
+        if len(messages) < 2:
+            return RECEIPT
+
+    for msg in messages:
+        document = msg.document
+        photo = msg.photo
+        if document:  # ✅ If the user sends a document
+            file_id = document.file_id
+            file_name = document.file_name if document.file_name else document.file_unique_id
+            mime_type = document.mime_type
+        elif photo and len(photo) > 0:  # ✅ If the user sends a photo
+            file_id = photo[-1].file_id  # Get the best quality image
+            file_name = photo[-1].file_unique_id + '.jpg'
+            # mime_type = "image/png"
+            mime_type = "image/jpeg"
+        else:
+            await update.message.reply_text("⚠️ 'Отправьте договор в формате: pdf , png , docx.'")
+            context.user_data.pop("media_group", None)
+            return RECEIPT
+
+        file = await context.bot.get_file(file_id)  # Get the file object
+        binary_data = await file.download_as_bytearray()  # Download file as binary data
+
+        # Prepare files for upload
+        files.append(("files", (file_name, binary_data, mime_type)))
+
+    response = api_routes.upload_files(files=files)
+    if response.status_code == 200:
+        response = response.json()
+        context.user_data["new_request"]["receipt_files"] = response["file_paths"]
+    else:
+        error_sender(error_message=f"FINANCE BOT: \n{response.text}")
+        await update.message.reply_text(
+            text="Повторите отправить файл заново!",
+            reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True,
+                                             one_time_keyboard=True)
+        )
+        context.user_data.pop("media_group", None)
+        return RECEIPT
+
     request = context.user_data["request_details"]
     request_sum = format(int(request['sum']), ',').replace(',', ' ')
     if request.get('exchange_rate', None) is not None:
@@ -900,7 +1152,9 @@ async def sap_code_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     budget_balance = context.user_data["request_details"]["budget_balance"]
     context.user_data["request_details"]["send_ceo"] = False
 
-    if float(context.user_data["request_details"]["sum"]) > budget_balance and context.user_data["request_details"]["over_budget"] == False:
+    if float(context.user_data["request_details"]["sum"]) > budget_balance and \
+            context.user_data["request_details"][
+                "over_budget"] == False:
         await update.message.reply_text(
             text="К сожалению, на балансе бюджета недостаточно средств для покрытия запрошенной суммы."
         )
@@ -912,7 +1166,8 @@ async def sap_code_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return HOME
 
     else:
-        if float(context.user_data["request_details"]["sum"]) > budget_balance and context.user_data["request_details"]["over_budget"] == True:
+        if float(context.user_data["request_details"]["sum"]) > budget_balance and \
+                context.user_data["request_details"]["over_budget"] == True:
             context.user_data["request_details"]["send_ceo"] = True
 
         await update.message.reply_text(
@@ -924,6 +1179,7 @@ async def sap_code_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             parse_mode='HTML'
         )
         return CONFIRM
+
 
 
 async def confirmation_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -944,6 +1200,9 @@ async def confirmation_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 
         if context.user_data["request_details"]["department_purchasable"] is True and context.user_data["request_details"]["expense_type_purchasable"] is True:
             context.user_data["new_request"]["purchase_approved"] = False
+
+        if context.user_data["request_details"]["expense_type_checkable"] is True:
+            context.user_data["new_request"]["checked_by_financier"] = False
 
         data = context.user_data["new_request"]
         response = api_routes.create_request(body=data)
