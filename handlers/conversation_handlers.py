@@ -1182,8 +1182,8 @@ async def confirmation_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         if context.user_data["request_details"]["department_purchasable"] is True and context.user_data["request_details"]["expense_type_purchasable"] is True:
             context.user_data["new_request"]["purchase_approved"] = False
 
-        if context.user_data["request_details"]["expense_type_checkable"] is True:
-            context.user_data["new_request"]["checked_by_financier"] = False
+        # if context.user_data["request_details"]["expense_type_checkable"] is True:
+        #     context.user_data["new_request"]["checked_by_financier"] = False
 
         data = context.user_data["new_request"]
         response = api_routes.create_request(body=data)
