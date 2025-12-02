@@ -240,7 +240,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         else:
             json_response = response.json()
             await query.answer(text=json_response["detail"], show_alert=True)
-            error_sender(error_message=f'FINANCE BOT: \n{json_response["detail"]}')
+            error_sender(error_message=f'FINANCE BOT: \n{json_response["detail"]}')t
 
 
 

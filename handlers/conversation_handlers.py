@@ -239,6 +239,7 @@ async def expense_type_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         return DEPARTMENTS
 
     response = api_routes.get_expense_types(name=expense_type_name)
+    print("expense_type_handler response: ", response.text)
     expense_type = response[0]
     expense_type_id = expense_type["id"]
     context.user_data["new_request"]["expense_type_id"] = expense_type_id
