@@ -207,13 +207,18 @@ async def department_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return HOME
 
     response = api_routes.get_departments(name=department_name)
-    department = response["items"][0]
+    try:
+        department = response["items"][0]
+    except IndexError:
+        await update.message.reply_text("Не найден данный отдел !")
+        return DEPARTMENTS
+
     department_id = department["id"]
-    over_budget = department["over_budget"]
+    over_budget = department.get("over_budget")
     context.user_data["new_request"]["status"] = 0
     context.user_data["new_request"]["department_id"] = department_id
     context.user_data["request_details"]["department_name"] = department_name
-    context.user_data["request_details"]["department_purchasable"] = department["purchasable"]
+    context.user_data["request_details"]["department_purchasable"] = department.get("purchasable")
     # context.user_data["request_details"]["over_budget"] = bool(over_budget == "True")
     context.user_data["request_details"]["over_budget"] = over_budget
 
@@ -245,13 +250,11 @@ async def expense_type_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         await update.message.reply_text("Не найден данный вид расхода !")
         return EXPENSE_TYPE
 
-    print("expense_type response: ", expense_type)
-
-    expense_type_id = expense_type["id"]
+    expense_type_id = expense_type.get("id")
     context.user_data["new_request"]["expense_type_id"] = expense_type_id
     context.user_data["request_details"]["expense_type_name"] = expense_type_name
-    context.user_data["request_details"]["expense_type_purchasable"] = expense_type["purchasable"]
-    context.user_data["request_details"]["expense_type_checkable"] = expense_type["checkable"]
+    context.user_data["request_details"]["expense_type_purchasable"] = expense_type.get("purchasable")
+    context.user_data["request_details"]["expense_type_checkable"] = expense_type.get("checkable")
 
 
     if expense_type_name == "Командировочные расходы":
@@ -282,7 +285,12 @@ async def country_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return EXPENSE_TYPE
 
     response = api_routes.get_countries(name=country_name)
-    country_obj = response[0]
+    try:
+        country_obj = response[0]
+    except IndexError:
+        await update.message.reply_text("Не найдена данная страна !")
+        return COUNTRY
+
     country_id = country_obj["id"]
     context.user_data["request_details"]["country_id"] = country_id
     context.user_data["request_details"]["country"] = country_name
@@ -306,7 +314,12 @@ async def city_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         return COUNTRY
 
     response = api_routes.get_cities(name=city_name)
-    city_obj = response[0]
+    try:
+        city_obj = response[0]
+    except IndexError:
+        await update.message.reply_text("Не найден данный город !")
+        return CITY
+
     city_id = city_obj["id"]
     city_desc = city_obj["description"]
     context.user_data["new_request"]["city_id"] = city_id
@@ -566,7 +579,12 @@ async def sum_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 
 async def payment_time_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    user_message = update.message.text
+    try:
+        user_message = update.message.text
+    except AttributeError:
+        await update.message.reply_text("Введите дату оплаты в формате:  дд.мм.гггг (08.05.2025)")
+        return PAYMENT_TIME
+
     if user_message == "Назад ⬅️":
         await update.message.reply_text(
             text='Укажите сумму в числах',
@@ -600,10 +618,10 @@ async def payment_time_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         start_date=formatted_date,
         finish_date=formatted_date
     )
-    context.user_data["request_details"]["budget_balance"] = budget_balance['value'] if budget_balance else 0
+    context.user_data["request_details"]["budget_balance"] = budget_balance.get('value') if budget_balance else 0
 
     await update.message.reply_text(
-        text=f"Ваш текущий бюджет по выбранному типу затраты: \n<b>{format(budget_balance['value'], ',').replace(',', ' ') if budget_balance else 0} сум</b>",
+        text=f"Ваш текущий бюджет по выбранному типу затраты: \n<b>{format(budget_balance.get('value'), ',').replace(',', ' ') if budget_balance else 0} сум</b>",
         parse_mode='HTML'
     )
 
@@ -645,7 +663,13 @@ async def payment_type_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         return PAYMENT_TIME
 
     response = api_routes.get_payment_types(name=payment_type_name)
-    payment_type_id = response[0]["id"]
+    try:
+        payment_type = response[0]
+    except IndexError:
+        await update.message.reply_text("Не найден данный тип оплаты !")
+        return PAYMENT_TYPE
+
+    payment_type_id = payment_type["id"]
     context.user_data["new_request"]["payment_type_id"] = payment_type_id
     context.user_data["request_details"]["payment_type_name"] = payment_type_name
 
@@ -695,7 +719,13 @@ async def payer_company_handler(update: Update, context: ContextTypes.DEFAULT_TY
     response = api_routes.get_payer_companies(name=payer_company)
     if response.status_code == 200:
         objs = response.json()
-        payer_company_id = objs["items"][0]["id"]
+        try:
+            payer_company = objs["items"][0]
+        except IndexError:
+            await update.message.reply_text("Не найдена данная фирма !")
+            return PAYER_COMPANY
+
+        payer_company_id = payer_company["id"]
 
         context.user_data["new_request"]["payer_company_id"] = payer_company_id
         context.user_data["request_details"]["payer_company_name"] = payer_company
