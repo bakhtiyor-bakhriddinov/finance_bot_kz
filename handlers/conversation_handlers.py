@@ -618,13 +618,16 @@ async def payment_time_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         start_date=formatted_date,
         finish_date=formatted_date
     )
-    value = budget_balance.get('value') if budget_balance else 0
+    value = (budget_balance.get("value") if budget_balance and budget_balance.get("value") is not None else 0) or 0
     context.user_data["request_details"]["budget_balance"] = value
 
     await update.message.reply_text(
         text=f"Ваш текущий бюджет по выбранному типу затраты: \n<b>{format(value, ',').replace(',', ' ')} сум</b>",
         parse_mode='HTML'
     )
+    if value == 0:
+        await update.message.reply_text(text="Обратитесь финансовому отделу !")
+        return PAYMENT_TIME
 
 
     # Format it as "YYYY-MM-DD"
