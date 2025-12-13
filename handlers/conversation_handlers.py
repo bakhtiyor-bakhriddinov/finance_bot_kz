@@ -765,7 +765,7 @@ async def payment_card_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     context.user_data["request_details"]["payment_card"] = payment_card
 
     await update.message.reply_text(
-        text='Укажите код заявки в SAP',
+        text='Укажите номер приходной',
         reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
     )
     return SAP_CODE
@@ -788,7 +788,7 @@ async def contract_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             return PAYMENT_TYPE
         elif text == "Пропустить ➡️":
             await update.message.reply_text(
-                text='Укажите код заявки в SAP',
+                text='Укажите номер приходной',
                 reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
             )
             return SAP_CODE
@@ -851,7 +851,7 @@ async def contract_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return CONTRACT
 
     await update.message.reply_text(
-        text='Укажите код заявки в SAP',
+        text='Укажите номер приходной',
         reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
     )
     return SAP_CODE
@@ -900,9 +900,9 @@ async def sap_code_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             )
             return PAYMENT_TYPE
 
-    context.user_data["new_request"]["sap_code"] = sap_code
+    context.user_data["new_request"]["acceptance_number"] = sap_code
     context.user_data["new_request"]["client_id"] = context.user_data['client']["id"]
-    context.user_data["request_details"]["sap_code"] = sap_code
+    context.user_data["request_details"]["acceptance_number"] = sap_code
 
     if "Перечисление" in context.user_data["request_details"]["payment_type_name"]:
         text = 'Укажите номер договора'
@@ -935,7 +935,7 @@ async def sap_code_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         f"📈 Курс валюты: {request['exchange_rate']}\n"
         f"💳 Тип оплаты: {request['payment_type_name']}\n"
         f"💳 Карта перевода: {request.get('payment_card', '')}\n"
-        f"📜 № Заявки в SAP: {request['sap_code']}\n"
+        f"📜 № Номер приходной: {request['acceptance_number']}\n"
         f"🕓 Дата оплаты: {request['payment_time'].strftime('%d.%m.%Y')}\n"
         f"💸 Фирма-плательщик: {request.get('payer_company_name', '')}\n\n"
         f"📝 Комментарии: {request['description']}"
@@ -982,7 +982,7 @@ async def contract_number_handler(update: Update, context: ContextTypes.DEFAULT_
 
     if response == "Назад ⬅️":
         await update.message.reply_text(
-            text='Укажите код заявки в SAP',
+            text='Укажите номер приходной',
             reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
         )
         return SAP_CODE
@@ -1042,7 +1042,7 @@ async def receipt_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 f"📈 Курс валюты: {request['exchange_rate']}\n"
                 f"💳 Тип оплаты: {request['payment_type_name']}\n"
                 f"💳 Карта перевода: {request.get('payment_card', '')}\n"
-                f"📜 № Заявки в SAP: {request['sap_code']}\n"
+                f"📜 № Номер приходной: {request['acceptance_number']}\n"
                 f"🕓 Дата оплаты: {request['payment_time'].strftime('%d.%m.%Y')}\n"
                 f"💸 Фирма-плательщик: {request.get('payer_company_name', '')}\n\n"
                 f"📝 Комментарии: {request['description']}"
@@ -1161,7 +1161,7 @@ async def receipt_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         f"📈 Курс валюты: {request['exchange_rate']}\n"
         f"💳 Тип оплаты: {request['payment_type_name']}\n"
         f"💳 Карта перевода: {request.get('payment_card', '')}\n"
-        f"📜 № Заявки в SAP: {request['sap_code']}\n"
+        f"📜 № Номер приходной: {request['acceptance_number']}\n"
         f"🕓 Дата оплаты: {request['payment_time'].strftime('%d.%m.%Y')}\n"
         f"💸 Фирма-плательщик: {request.get('payer_company_name', '')}\n\n"
         f"📝 Комментарии: {request['description']}"
@@ -1208,7 +1208,7 @@ async def confirmation_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     confirmation = update.message.text
     if confirmation == "Назад ⬅️":
         await update.message.reply_text(
-            text='Укажите код заявки в SAP',
+            text='Укажите номер приходной',
             reply_markup=ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True, one_time_keyboard=True)
         )
         return SAP_CODE
@@ -1251,7 +1251,7 @@ async def confirmation_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                 f"📈 Курс валюты: {request['exchange_rate']}\n"
                 f"💳 Тип оплаты: {request['payment_type']['name']}\n"
                 f"💳 Карта перевода: {request['payment_card'] if request['payment_card'] is not None else ''}\n"
-                f"📜 № Заявки в SAP: {request['sap_code']}\n"
+                f"📜 № Номер приходной: {request['acceptance_number']}\n"
                 f"🕓 Дата оплаты: {datetime.strptime(request['payment_time'], '%Y-%m-%dT%H:%M:%S%z').strftime('%d.%m.%Y')}\n"
                 f"💸 Фирма-плательщик: {request['payer_company']['name'] if request['payer_company'] is not None else ''}\n\n"
                 f"📝 Комментарии: {request['description']}"
