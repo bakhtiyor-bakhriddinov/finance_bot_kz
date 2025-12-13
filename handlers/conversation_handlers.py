@@ -732,7 +732,7 @@ async def payer_company_handler(update: Update, context: ContextTypes.DEFAULT_TY
         payer_company_id = payer_company["id"]
 
         context.user_data["new_request"]["payer_company_id"] = payer_company_id
-        context.user_data["request_details"]["payer_company_name"] = payer_company
+        context.user_data["request_details"]["payer_company_name"] = payer_company.get("name")
 
         text = 'Отправьте договор в формате: pdf , png , docx.'
         reply_markup = ReplyKeyboardMarkup(keyboard=[["Назад ⬅️"]], resize_keyboard=True,
