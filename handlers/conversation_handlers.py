@@ -502,8 +502,6 @@ async def currency_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         ccy = "USD"
     elif currency == "Евро":
         ccy = "EUR"
-    elif currency == "Тенге":
-        ccy = "KZT"
     elif currency == "Фунт":
         ccy = "GBP"
     elif currency == "Рубль":
@@ -511,24 +509,24 @@ async def currency_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
     exchange_rate = None
 
-    if currency != "Сум":
-        currency_response = requests.get(f"https://cbu.uz/uz/arkhiv-kursov-valyut/json/")
-        if currency_response.status_code == 200:
-            cbu_currencies = currency_response.json()
-            currency_dict = next((item for item in cbu_currencies if item["Ccy"] == ccy), None)
-            exchange_rate = float(currency_dict["Rate"])
-
-        else:
-            error_sender(error_message=currency_response.text)
-            await update.message.reply_text(
-                text="Что-то пошло не так, выберите заново валюту!"
-            )
-            keyboard = (await client_keyboards.currency_keyboard())
-            await update.message.reply_text(
-                text=keyboard['text'],
-                reply_markup=keyboard['markup']
-            )
-            return CURRENCY
+    # if currency != "Тенге":
+    #     currency_response = requests.get(f"https://cbu.uz/uz/arkhiv-kursov-valyut/json/")
+    #     if currency_response.status_code == 200:
+    #         cbu_currencies = currency_response.json()
+    #         currency_dict = next((item for item in cbu_currencies if item["Ccy"] == ccy), None)
+    #         exchange_rate = float(currency_dict["Rate"])
+    #
+    #     else:
+    #         error_sender(error_message=currency_response.text)
+    #         await update.message.reply_text(
+    #             text="Что-то пошло не так, выберите заново валюту!"
+    #         )
+    #         keyboard = (await client_keyboards.currency_keyboard())
+    #         await update.message.reply_text(
+    #             text=keyboard['text'],
+    #             reply_markup=keyboard['markup']
+    #         )
+    #         return CURRENCY
 
 
     context.user_data["new_request"]["currency"] = currency
@@ -557,7 +555,7 @@ async def sum_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     is_number = sum.isdigit()
     if is_number:
         # over_budget = context.user_data["request_details"]["over_budget"]
-        if context.user_data["new_request"]["currency"] != "Сум":
+        if context.user_data["new_request"]["currency"] != "Тенге" and context.user_data["new_request"]["exchange_rate"] is not None:
             sum = float(sum) * context.user_data["new_request"]["exchange_rate"]
 
         context.user_data["new_request"]["sum"] = sum
