@@ -70,7 +70,12 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
     request_number = match.group(1)
 
     response = api_routes.get_requests(number=request_number)
-    request = response.json()['items'][0]
+    try:
+        request = response.json()['items'][0]
+    except IndexError:
+        await query.answer(text="Данная заявка не найдена !", show_alert=True)
+        return None
+
     request_id = str(request['id'])
 
     if request['status'] == 5:
